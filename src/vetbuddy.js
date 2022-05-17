@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Cessna Bill Creator
 // @namespace    http://tampermonkey.net/
-// @version      0.4
+// @version      0.4.1
 // @description  A script to add functionality to the VetBuddy (Mainly for Cessna Lifeline) to make it usable. This script adds a summary of all the pets as well as a way to export pending invoices in a pdf format.
 // @author       You
 // @match        https://*.thevetbuddy.com/client_invoicedetails.html?*
@@ -123,7 +123,7 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
 <table class="table table-condensed" style="margin-bottom: 50px">
 <thead>
 <tr style="font-weight: bold;">
-  <th></th>
+  <th style="width: 20px"></th>
   <th style="font-size: 16px !important; ">Pet Name</th>
   <th style="font-size: 16px !important; ">Paid</th>
   <th style="font-size: 16px !important; ">Balance</th>
@@ -142,7 +142,7 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
     var petData = petObject[petName];
     innerHtml += `
   <tr>
-    <td onclick="updateTotalsInternal()"> <input type="checkbox" value="${petName}"/>
+    <td> <input type="checkbox" value="${petName}" onclick="updateTotalsInternal()"/></td>
   `
     if (petData.balance > 0) {
       var encodedUrls = encodeURIComponent(petData.unpaidInvoices);
