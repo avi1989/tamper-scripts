@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Cessna Bill Creator
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.4
 // @description  A script to add functionality to the VetBuddy (Mainly for Cessna Lifeline) to make it usable. This script adds a summary of all the pets as well as a way to export pending invoices in a pdf format.
 // @author       You
 // @match        https://*.thevetbuddy.com/client_invoicedetails.html?*
@@ -11,10 +11,7 @@
 // @grant        none
 // ==/UserScript==
 
-(function () {
-  'use strict';
-  var petTable = document.querySelector("#no-more-tables")
-
+function getPetData(petTable) {
   var petObject = {};
 
   var pets = [...petTable.querySelectorAll("tr")].filter(x => x.className != "visible-md visible-lg")
@@ -25,10 +22,6 @@
 
     if (petName == null) {
       continue;
-    }
-
-    if (statusDiv == null) {
-      debugger;
     }
 
     var invoiceLink = statusDiv.querySelector(".invoicelink").getAttribute("onclick");
@@ -45,7 +38,8 @@
         balance: 0.00,
         total: 0.00,
         paid: 0.00,
-        unpaidInvoices: ""
+        unpaidInvoices: "",
+        paidInvoices: "",
       }
     }
 
@@ -53,25 +47,72 @@
     petObject[petName].total += parseFloat(petTotal);
     petObject[petName].paid += parseFloat(petPaid)
     if (parseFloat(petBalance) > 0) {
-      petObject[petName].unpaidInvoices += `${invoiceLink},`
+      petObject[petName].unpaidInvoices += `${invoiceLink},`;
+    } else {
+      petObject[petName].paidInvoices += `${invoiceLink},`;
+    }
+  }
+
+  return petObject;
+}
+
+function updateTotals(petObject, petTable, topForm, addedSection) {
+  let totals = document.getElementById("avinash-totals")
+  if (totals == null) {
+    totals = document.createElement("div");
+    totals.id = "avinash-totals";
+    totals.style.marginBottom = "25px";
+    totals.style.marginLeft = "10px"
+    totals.style.marginTop = "10px"
+  }
+  
+  // totals.innerHTML = `
+  //   <h4>Totals</h4>
+  // `;
+
+  let balance = 0.0;
+  let paid = 0.0;
+  let total = 0.0; 
+
+  var checkedBoxes = [...addedSection.querySelectorAll('input[type=checkbox]:checked')].map(x => x.value);
+  for(const petName of Object.keys(petObject)) {
+    if (checkedBoxes.indexOf(petName) < 0)  {
+      continue;
     }
 
+    const petData = petObject[petName];
+    balance += petData.balance;
+    paid += petData.paid;
+    total += petData.total;
   }
 
+  totals.innerHTML = `
+    <h4>Totals</h4>
+    <p>Paid: ${paid.toLocaleString()}</p>
+    <p>Balance: ${balance.toLocaleString()}</p>
+    <p>Total: ${total.toLocaleString()}</p>
+  `;
+
+  console.info({balance, paid, total});
+
+  topForm.insertBefore(totals, petTable);
+}
+
+(function () {
+  'use strict';
+  var petTable = document.querySelector("#no-more-tables")
+  var petObject = getPetData(petTable);
   var topForm = document.querySelector("form[name=frmGeneral]")
-
   var newText = document.querySelector(".avinash-test");
-
   if (newText == null) {
     newText = document.createElement("div")
+    newText.className = "avinash-test"
+
+    newText.style.marginLeft = "10px"
+    newText.style.marginTop = "10px"
+    newText.style.marginBottom = "5px"
   }
 
-
-
-  newText.className = "avinash-test"
-
-  newText.style.marginLeft = "10px"
-  newText.style.marginTop = "10px"
   newText.innerHTML = `
 <div style="display:flex; justify-content:space-between">
     <h4 style="display">Pet Breakdowns</h4>
@@ -82,10 +123,11 @@
 <table class="table table-condensed" style="margin-bottom: 50px">
 <thead>
 <tr style="font-weight: bold;">
-    <th style="font-size: 16px !important; ">Pet Name</td>
-  <th style="font-size: 16px !important; ">Paid</td>
-  <th style="font-size: 16px !important; ">Balance</td>
-  <th style="font-size: 16px !important; ">Total</td>
+  <th></th>
+  <th style="font-size: 16px !important; ">Pet Name</th>
+  <th style="font-size: 16px !important; ">Paid</th>
+  <th style="font-size: 16px !important; ">Balance</th>
+  <th style="font-size: 16px !important; ">Total</th>
 </tr>
 </thead>
 <tbody>
@@ -100,6 +142,7 @@
     var petData = petObject[petName];
     innerHtml += `
   <tr>
+    <td onclick="updateTotalsInternal()"> <input type="checkbox" value="${petName}"/>
   `
     if (petData.balance > 0) {
       var encodedUrls = encodeURIComponent(petData.unpaidInvoices);
@@ -109,7 +152,7 @@
     }
 
     innerHtml += `
-  <td>${petData.paid.toLocaleString()}</td>
+      <td>${petData.paid.toLocaleString()}</td>
       <td>${petData.balance.toLocaleString()}</td>
       <td>${petData.total.toLocaleString()}</td>
   `;
@@ -119,11 +162,25 @@
   `;
   }
 
+  // innerHtml += `
+  // <tr style="font-weight: bold;">
+  //   <td></td>
+  //   <td style="font-size: 16px !important;">Totals</td>
+  //   <td style="font-size: 16px !important;">1</td>
+  //   <td style="font-size: 16px !important;">1</td>
+  //   <td style="font-size: 16px !important;">1</td>
+  // </tr>
+  // `;
+
   innerHtml += "</tbody></table>"
 
   newText.innerHTML += "" + innerHtml;
 
   topForm.insertBefore(newText, petTable);
 
-  // Your code here...
+  updateTotals(petObject, petTable, topForm, newText);
+
+  window.updateTotalsInternal =() => {
+    updateTotals(petObject, petTable, topForm, newText);
+  }
 })();
