@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Cessna Bill Creator
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.3
 // @description  A script to add functionality to the VetBuddy (Mainly for Cessna Lifeline) to make it usable. This script adds a summary of all the pets as well as a way to export pending invoices in a pdf format.
 // @author       You
 // @match        https://*.thevetbuddy.com/client_invoicedetails.html?*
@@ -11,7 +11,7 @@
 // @grant        none
 // ==/UserScript==
 
-(function() {
+(function () {
   'use strict';
   var petTable = document.querySelector("#no-more-tables")
 
@@ -103,7 +103,7 @@
   `
     if (petData.balance > 0) {
       var encodedUrls = encodeURIComponent(petData.unpaidInvoices);
-      innerHtml += `<td>${petName} <a href="https://www.sejda.com/html-to-pdf?save-link=${encodedUrls}" target="_blank">Export Invoices</a></td>`
+      innerHtml += `<td>${petName} <a href="https://www.sejda.com/html-to-pdf?save-link=${encodedUrls}" target="_blank">Export Unpaid Invoices</a></td>`
     } else {
       innerHtml += `<td>${petName}</td>`
     }
