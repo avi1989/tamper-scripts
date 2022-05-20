@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Cessna Bill Creator
 // @namespace    http://tampermonkey.net/
-// @version      0.4.1
+// @version      0.4.2
 // @description  A script to add functionality to the VetBuddy (Mainly for Cessna Lifeline) to make it usable. This script adds a summary of all the pets as well as a way to export pending invoices in a pdf format.
 // @author       You
 // @match        https://*.thevetbuddy.com/client_invoicedetails.html?*
@@ -56,6 +56,23 @@ function getPetData(petTable) {
   return petObject;
 }
 
+function fixAccountBalance() {
+  const fontElement = document.querySelector("#planactionpagecontent table tr:nth-child(2) font");
+  console.debug({fontElement});
+  const priceText = fontElement.innerHTML.substr(fontElement.innerHTML.indexOf("Rs. ") + 4);
+  console.debug({priceText});
+  const price = parseFloat(priceText);
+  console.debug({price});
+
+  var outerHtml = `
+    <font size="4" color="blue"><span class="languagetranslator">Account balance</span> - Rs. ${price.toLocaleString("hi")} </font>
+  `;
+
+  console.warn({outerHtml})
+
+  fontElement.innerHTML = outerHtml;
+}
+
 function updateTotals(petObject, petTable, topForm, addedSection) {
   let totals = document.getElementById("avinash-totals")
   if (totals == null) {
@@ -88,9 +105,9 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
 
   totals.innerHTML = `
     <h4>Totals</h4>
-    <p>Paid: ${paid.toLocaleString()}</p>
-    <p>Balance: ${balance.toLocaleString()}</p>
-    <p>Total: ${total.toLocaleString()}</p>
+    <p>Paid: ${paid.toLocaleString("hi")}</p>
+    <p>Balance: ${balance.toLocaleString("hi")}</p>
+    <p>Total: ${total.toLocaleString("hi")}</p>
   `;
 
   console.info({balance, paid, total});
@@ -152,9 +169,9 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
     }
 
     innerHtml += `
-      <td>${petData.paid.toLocaleString()}</td>
-      <td>${petData.balance.toLocaleString()}</td>
-      <td>${petData.total.toLocaleString()}</td>
+      <td>${petData.paid.toLocaleString("hi")}</td>
+      <td>${petData.balance.toLocaleString("hi")}</td>
+      <td>${petData.total.toLocaleString("hi")}</td>
   `;
 
     innerHtml += `
@@ -178,9 +195,11 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
 
   topForm.insertBefore(newText, petTable);
 
-  updateTotals(petObject, petTable, topForm, newText);
+  updateTotals(petObject, petTable, topForm, newText);  
 
   window.updateTotalsInternal =() => {
     updateTotals(petObject, petTable, topForm, newText);
   }
+
+  fixAccountBalance();
 })();
