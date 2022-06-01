@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Cessna Bill Creator
 // @namespace    http://tampermonkey.net/
-// @version      0.5.0
+// @version      0.5.1
 // @description  A script to add functionality to the VetBuddy (Mainly for Cessna Lifeline) to make it usable. This script adds a summary of all the pets as well as a way to export pending invoices in a pdf format.
 // @author       You
 // @match        https://*.thevetbuddy.com/client_invoicedetails.html?*
@@ -130,7 +130,6 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
   'use strict';
   var petTable = document.querySelector("#no-more-tables")
   var petObject = getPetData(petTable);
-  console.warn("Pet data obtained", petObject)
   var topForm = document.querySelector("form[name=frmGeneral]")
   var newText = document.querySelector(".avinash-test");
   if (newText == null) {
@@ -169,7 +168,15 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
     navigator.clipboard.writeText(string);
   }
 
-  for (var petName of Object.keys(petObject)) {
+  var petList = Object.keys(petObject);
+
+  petList.sort((a, b) => {
+    var petA = petObject[a];
+    var petB = petObject[b];
+    return new Date(petB.dateOfAdmission).getTime() - new Date(petA.dateOfAdmission).getTime()
+  })
+
+  for (var petName of petList) {
     var petData = petObject[petName];
     var casedPetName = petData.name;
     innerHtml += `
@@ -194,16 +201,6 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
   </tr>
   `;
   }
-
-  // innerHtml += `
-  // <tr style="font-weight: bold;">
-  //   <td></td>
-  //   <td style="font-size: 16px !important;">Totals</td>
-  //   <td style="font-size: 16px !important;">1</td>
-  //   <td style="font-size: 16px !important;">1</td>
-  //   <td style="font-size: 16px !important;">1</td>
-  // </tr>
-  // `;
 
   innerHtml += "</tbody></table>"
 
