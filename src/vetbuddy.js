@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Cessna Bill Creator
 // @namespace    http://tampermonkey.net/
-// @version      0.4.2
+// @version      0.5.0
 // @description  A script to add functionality to the VetBuddy (Mainly for Cessna Lifeline) to make it usable. This script adds a summary of all the pets as well as a way to export pending invoices in a pdf format.
 // @author       You
 // @match        https://*.thevetbuddy.com/client_invoicedetails.html?*
@@ -17,7 +17,8 @@ function getPetData(petTable) {
   var pets = [...petTable.querySelectorAll("tr")].filter(x => x.className != "visible-md visible-lg")
 
   for (var pet of pets) {
-    var petName = pet.querySelector("td[data-title=Patient]")?.innerText;
+    var casedPetName = pet.querySelector("td[data-title=Patient]")?.innerText;
+    var petName = casedPetName?.toLowerCase();
     var statusDiv = pet.querySelector("td[data-title=Status]");
 
     if (petName == null) {
@@ -36,7 +37,7 @@ function getPetData(petTable) {
 
     if (petObject[petName] == null) {
       petObject[petName] = {
-        name: petName,
+        name: casedPetName,
         balance: 0.00,
         total: 0.00,
         paid: 0.00,
@@ -123,10 +124,13 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
   topForm.insertBefore(totals, petTable);
 }
 
+
+
 (function () {
   'use strict';
   var petTable = document.querySelector("#no-more-tables")
   var petObject = getPetData(petTable);
+  console.warn("Pet data obtained", petObject)
   var topForm = document.querySelector("form[name=frmGeneral]")
   var newText = document.querySelector(".avinash-test");
   if (newText == null) {
@@ -141,6 +145,7 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
   newText.innerHTML = `
 <div style="display:flex; justify-content:space-between">
     <h4 style="display">Pet Breakdowns</h4>
+    <a href="javascript:copyPaidInvoicesToClipboard()">Copy Link to Paid</a>
 </div>
 `;
 
@@ -166,15 +171,16 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
 
   for (var petName of Object.keys(petObject)) {
     var petData = petObject[petName];
+    var casedPetName = petData.name;
     innerHtml += `
   <tr>
     <td> <input type="checkbox" value="${petName}" onclick="updateTotalsInternal()"/></td>
   `
     if (petData.balance > 0) {
       var encodedUrls = encodeURIComponent(petData.unpaidInvoices);
-      innerHtml += `<td>${petName} <a href="https://www.sejda.com/html-to-pdf?save-link=${encodedUrls}" target="_blank">Export Unpaid Invoices</a></td>`
+      innerHtml += `<td>${casedPetName} <a href="https://www.sejda.com/html-to-pdf?save-link=${encodedUrls}" target="_blank">Export Unpaid Invoices</a></td>`
     } else {
-      innerHtml += `<td>${petName}</td>`
+      innerHtml += `<td>${casedPetName}</td>`
     }
 
     innerHtml += `
