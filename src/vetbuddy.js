@@ -28,6 +28,8 @@ function getPetData(petTable) {
     invoiceLink = invoiceLink.substring(invoiceLink.indexOf("(") + 1, invoiceLink.indexOf(","))
     invoiceLink = `https://cessnalifeline.thevetbuddy.com/invoiceview.html?cmdPrint=true&invoice=${invoiceLink}&disableprint=true&patientid=&problemid=`
 
+    var invoiceDate = statusDiv.querySelector("div:nth-child(3)").innerText;
+
     var petTotal = pet.querySelector("td[data-title=Total]").innerText;
     var petPaid = pet.querySelector("td[data-title=Paid]")?.innerText;
     var petBalance = pet.querySelector("td[data-title=Balance]")?.innerText;
@@ -40,12 +42,18 @@ function getPetData(petTable) {
         paid: 0.00,
         unpaidInvoices: "",
         paidInvoices: "",
+        dateOfAdmission: invoiceDate,
       }
     }
 
     petObject[petName].balance += parseFloat(petBalance);
     petObject[petName].total += parseFloat(petTotal);
     petObject[petName].paid += parseFloat(petPaid)
+
+    if (new Date(petObject[petName].dateOfAdmission) > new Date(invoiceDate)) {
+      petObject[petName].dateOfAdmission = invoiceDate;
+    }
+
     if (parseFloat(petBalance) > 0) {
       petObject[petName].unpaidInvoices += `${invoiceLink},`;
     } else {
@@ -142,6 +150,7 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
 <tr style="font-weight: bold;">
   <th style="width: 20px"></th>
   <th style="font-size: 16px !important; ">Pet Name</th>
+  <th style="font-size: 16px !important; ">Date of Admission</th>
   <th style="font-size: 16px !important; ">Paid</th>
   <th style="font-size: 16px !important; ">Balance</th>
   <th style="font-size: 16px !important; ">Total</th>
@@ -169,6 +178,7 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
     }
 
     innerHtml += `
+      <td>${petData.dateOfAdmission}</td>
       <td>${petData.paid.toLocaleString("hi")}</td>
       <td>${petData.balance.toLocaleString("hi")}</td>
       <td>${petData.total.toLocaleString("hi")}</td>
@@ -199,6 +209,19 @@ function updateTotals(petObject, petTable, topForm, addedSection) {
 
   window.updateTotalsInternal =() => {
     updateTotals(petObject, petTable, topForm, newText);
+  }
+
+  window.copyPaidInvoicesToClipboard = () => {
+    let paidInvoices = "";
+    for(var petName of Object.keys(petObject)) {
+      let petData = petObject[petName];
+      if (petData.paidInvoices != null && petData.paidInvoices != "") {
+        paidInvoices += petData.paidInvoices;
+      }
+    }
+    window.copyLink(paidInvoices)
+    // paidInvoices = paidInvoices.replaceAll(",", "\n");
+    // console.debug({paidInvoices});
   }
 
   fixAccountBalance();
